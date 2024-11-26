@@ -42,6 +42,7 @@
 #### Description: This endpoint allows a user to return a product they have purchased, provided the product 
 #### is returned within 30 days from the purchase date. If the return is accepted, the user's account will be refunded,
 #### and the product will be restocked in the merchant's inventory.
+#### Endpoint: PUT /return/{userid}/{productid}/{merchantid}/{paymentdate}
 #### Location: UserController.java
 #### Parameters:
 #### userId (String): The ID of the user returning the product.
@@ -49,5 +50,16 @@
 #### merchantId (String): The ID of the merchant from whom the product was purchased.
 #### paymentDate (LocalDate): The date when the product was paid for.
 #### Response :
+#### 200 OK: Return process done successfully.
+#### 400 Bad Request: Product not found,Merchant not found,user not found ,Return period has passed.
 
-## 5 - 
+## 5 - getAllMerchants (User)
+#### Description: This endpoint allows a user with an "Admin" role to retrieve a list of all merchants available in the system. 
+#### It checks the user's role to ensure they have the appropriate permissions to access the merchant information.
+#### Endpoint: GET /get/merchant/{userid}
+#### Location: UserController.java
+#### Parameters:
+#### userId (String): The ID of the user making the request. This user must have an "Admin" role to access the list of merchants.
+#### Response:
+#### 200 OK: Returns the list of all merchants if the user has an "Admin" role.
+#### 400 Bad Request: If the user is not found or the user is not an "Admin".
