@@ -15,16 +15,22 @@
 #### 400 Bad Request: No products in the given category with the specified price range.
 
 ## 2. ratingProduct (User)
-#### Description:This endpoint allow a user to rate a product by providing a rating scale,
+#### Description:This endpoint allows a registered user to rate a product on a scale of 1 to 4. 
+#### The rating is then stored, updating the product's overall rating .
 #### and takes three parameters (userId , productId , ratingScale)
 #### Endpoint: PUT /rating/{userId}/{productId}/{ratingScale}
 #### Location: UserController.java
 #### Parameters:
 #### userId: The ID of the user rating the product.
 #### productId: The ID of the product being rated.
-#### ratingScale: The rating given by the user (an integer between 1 and 4).
+#### ratingScale: The rating given by the user (an integer between 1 and 4)
+1 = Very Good
+2 = Good
+3 = Average
+4 = Bad
 #### Response:
 #### 200 OK: Rating applied successfully.
+#### 400 Bad Request:Invalid ratingScale,the product does not exist, or the user is not found.
 
 ## 3. applyDiscount (Merchant)
 #### Description: This endpoint allows a merchant to apply a discount on a specific product.
