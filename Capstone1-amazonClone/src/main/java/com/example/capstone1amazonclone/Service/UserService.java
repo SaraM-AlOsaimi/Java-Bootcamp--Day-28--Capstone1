@@ -59,6 +59,7 @@ public class UserService {
     private final MerchantStockService merchantStockService;
 
 
+
     public Integer buyProduct(String userId , String productId , String merchantId){
         for (User user : users){
             if (user.getId().equals(userId)){
@@ -71,6 +72,7 @@ public class UserService {
                                         merchantStock.setStock(merchantStock.getStock() - 1);
                                         if(user.getBalance() >= product.getPrice()){
                                             user.setBalance(user.getBalance() - product.getPrice());
+                                            user.addProductPurchased(product);
                                             return 1; // everything works well
                                         }
                                         return 2; // balance is low
@@ -108,9 +110,7 @@ public class UserService {
     // Method to update product's rating
     public void updateProductRating(Product product, int ratingScale) {
         product.setTotalRatingScore(product.getTotalRatingScore() + ratingScale);
-        for (Product product1 : productService.getProducts()) {
-            product1.setRatingCount(product.getRatingCount() + 1);
-        }
+            product.setRatingCount(product.getRatingCount() + 1);
         // Recalculate the average rating
         double averageRating = product.getTotalRatingScore() / product.getRatingCount();
         product.setAverageRating(averageRating);
@@ -135,63 +135,69 @@ public class UserService {
             return "C"; // user not found
     }
 
- // 4- Forth extra endpoint
+
+    // 4- Forth extra endpoint
  //This method allows a user to return a product they have purchased, provided the product is returned within 30 days from the purchase date.
  // If the return is accepted, the user's account will be refunded, and the product will be restocked in the merchant's inventory.
- public Integer returnProduct(String userId, String productId, String merchantId, LocalDate paymentDate) {
-     for (User user : users) {
-         if (user.getId().equals(userId)) {    // Check if user exists
-             for (Product product : productService.getProducts()) {
-                 if (product.getId().equals(productId)) {   // Check if the product exists
-                     for (Merchant merchant : merchantService.getMerchants()) {
-                         if (merchant.getId().equals(merchantId)) { // Check if the merchant exists
-                             // Calculate the days since the product was paid for
-                             long daysSincePayment = ChronoUnit.DAYS.between(paymentDate, LocalDate.now());
-                             // Check if the return period is within 14 days
-                             if (daysSincePayment <= 30) {
-                                 // Check if the product is in stock and update stock
-                                 for (MerchantStock merchantStock : merchantStockService.getMerchantStocks()) {
-                                     if (merchantStock.getProductId().equals(productId)) {
-                                         // Restock the product and refund the user
-                                         merchantStock.setStock(merchantStock.getStock() + 1); // Increase stock
-                                         user.setBalance(user.getBalance() + product.getPrice()); // Refund user
-                                         return 1; // return process done successfully
-                                     }
-                                 }
-                             } else {
-                                 return 2; // Return period has passed (more than 30 days)
-                             }
-                         }
-                     }
-                     return 3; // Merchant not found
-                 }
-             }
-             return 4; // Product not found
-         }
-     }
-     return 5; // User not found
-    }
-
-    // 5 - Fifth Extra endpoint
-    //This method allows an "Admin" user to retrieve a list of all merchants available.
-    // It verifies that the user exists and has the necessary permissions (Admin role) to access the merchant data.
-    public ArrayList<Merchant> getAllMerchants(String userId){
-        ArrayList<Merchant> getMerchants = new ArrayList<>();
-        for (User user : users){
-            if(user.getId().equals(userId)){ // check the user exist
-                if(user.getRole().equals("Admin")){// check user role
-                    for (Merchant merchant : merchantService.getMerchants()){
-                        getMerchants.add(merchant);
-                    }
-                }
+    public Integer returnProduct(String userId, String productId, String merchantId, LocalDate paymentDate) {
+        User user = null;
+        for (User u : users) { // check if the user exist
+            if (u.getId().equals(userId)) {
+                user = u;
+                break;
             }
         }
-        return (getMerchants.isEmpty()) ? null : getMerchants;
+        if (user == null) return 5; // User not found
+
+        // Ensure that the products purchased list is not null
+        if (user.getProductsPurchased() == null) return 4;
+
+        // Find the product by productId
+        Product product = null;
+        for (Product p : user.getProductsPurchased()) {
+            if (p.getId().equals(productId)) {
+                product = p;
+                break;
+            }
+        }
+        if (product == null) return 4; // Product not found in user's purchases
+
+        // Find the merchant by merchantId
+        Merchant merchant = null;
+        for (Merchant m : merchantService.getMerchants()) {
+            if (m.getId().equals(merchantId)) {
+                merchant = m;
+                break;
+            }
+        }
+        if (merchant == null) return 3; // Merchant not found
+
+        // Calculate the days since the product was purchased
+        long daysSincePayment = ChronoUnit.DAYS.between(paymentDate, LocalDate.now());
+        if (daysSincePayment > 30) return 2; // Return period has passed (more than 30 days)
+
+        // Find the merchant stock for the product
+        MerchantStock merchantStock = null;
+        for (MerchantStock stock : merchantStockService.getMerchantStocks()) {
+            if (stock.getProductId().equals(productId)) {
+                merchantStock = stock;
+                break;
+            }
+        }
+
+        // If merchant stock exists, process return and restock
+        if (merchantStock != null) {
+            merchantStock.setStock(merchantStock.getStock() + 1); // Restock the product
+            user.setBalance(user.getBalance() + product.getPrice()); // Refund the user
+            user.getProductsPurchased().remove(product); // Remove the product from the purchased list
+            return 1; // Return process successful
+        }
+
+        return 0; // No stock found for the product
     }
 
 
-    //--------------------------------
-    // Extra credit
+    // 5 - Fifth Extra endpoint
     // Method to return list of product that is bestSeller based on totalRating
     public ArrayList<Product> getBestSellers() {
         ArrayList<Product> products = productService.getProducts();
@@ -207,7 +213,6 @@ public class UserService {
             products.set(i, products.get(maxIndex));
             products.set(maxIndex, temp);
         }
-
         // Get top 3 best sellers
         int topThree = 3;
         ArrayList<Product> bestSellers = new ArrayList<>();
@@ -218,5 +223,23 @@ public class UserService {
     }
 
 
+    //--------------------------------
+    // Extra credit
+    //This method allows an "Admin" user to retrieve a list of all merchants available.
+    // It verifies that the user exists and has the necessary permissions (Admin role) to access the merchant data.
+
+    public ArrayList<Merchant> getAllMerchants(String userId){
+        ArrayList<Merchant> getMerchants = new ArrayList<>();
+        for (User user : users){
+            if(user.getId().equals(userId)){ // check the user exist
+                if(user.getRole().equals("Admin")){// check user role
+                    for (Merchant merchant : merchantService.getMerchants()){
+                        getMerchants.add(merchant);
+                    }
+                }
+            }
+        }
+        return (getMerchants.isEmpty()) ? null : getMerchants;
+    }
 
 }

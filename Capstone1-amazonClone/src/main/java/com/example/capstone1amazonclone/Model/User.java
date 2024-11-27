@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.ArrayList;
+
 @Data
 @AllArgsConstructor
 public class User {
@@ -32,5 +34,15 @@ public class User {
     @NotNull(message = "Balance is null")
     @Positive(message = "Balance have to be positive")
     private Integer balance;
+
+
+    private ArrayList<Product> productsPurchased ;
+
+    public void addProductPurchased(Product product) {
+        if (productsPurchased == null) {
+            productsPurchased = new ArrayList<>(); // Initialize the list if it's null
+        }
+        productsPurchased.add(product);
+    }
 
 }

@@ -95,8 +95,8 @@ public class UserController {
     // 2- Second extra endpoint //Put
     @PutMapping("/rating/{userId}/{productId}/{ratingScale}")
     public ResponseEntity<?> ratingProduct(@PathVariable String userId,@PathVariable String productId,@PathVariable Integer ratingScale){
-        if (ratingScale < 1 || ratingScale > 4) {
-            return ResponseEntity.status(400).body(new ApiResponse("Rating scale must be between 1 and 4, where 1 = Very Good, 2 = Good, 3 = Average, 4 = Bad"));
+        if (ratingScale < 1 || ratingScale > 5) {
+            return ResponseEntity.status(400).body(new ApiResponse("Invalid Rating scale"));
         }
         String rating = userService.ratingProduct(userId,productId,ratingScale);
         if(rating.equals("A")){
@@ -107,6 +107,7 @@ public class UserController {
         }
         return ResponseEntity.status(400).body(new ApiResponse("User not found or not registered"));
     }
+
 
     // 4 - Forth Extra endpoint // Put
     @PutMapping("/return/{userid}/{productid}/{merchantid}/{paymentdate}")
